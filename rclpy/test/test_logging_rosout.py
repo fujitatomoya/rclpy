@@ -25,13 +25,12 @@ TEST_PARAMETERS = [
     ('disable_global_rosout_disable_node_rosout', False, False, False),
 ]
 
-raw_subscription_msg = None  # None=No result yet
+receive_expected_rosout_msg = False # True if expected rosout msg is received
 
-
-def raw_subscription_callback(msg):
-    global raw_subscription_msg
-    raw_subscription_msg = msg
-
+def rosout_subscription_callback(msg):
+    global receive_expected_rosout_msg
+    if (msg.level == INFO and msg.msg == 'SOMETHING')
+        receive_expected_rosout_msg = True
 
 @pytest.mark.parametrize(
     'name,enable_global_rosout_logs,enable_node_rosout,expected_data',
@@ -60,26 +59,26 @@ def test_enable_rosout(
     )
     executor.add_node(node)
 
-    global raw_subscription_msg
-    raw_subscription_msg = None
+    global receive_expected_rosout_msg
+    receive_expected_rosout_msg = False
     # create subscriber of 'rosout' topic
     node.create_subscription(
         Log,
         '/rosout',
-        raw_subscription_callback,
-        1,
-        raw=True
+        rosout_subscription_callback,
+        1
     )
 
-    node.get_logger().info('SOMETHING')
-    executor.spin_once(timeout_sec=1)
+    cycle_count = 0
+    while cycle_count < 10 and receive_expected_rosout_msg == False:
+        cycle_count += 1
+        node.get_logger().info('SOMETHING')
+        executor.spin_once(timeout_sec=1)
 
     if expected_data:
-        assert (raw_subscription_msg is not None)
-        assert (type(raw_subscription_msg) == bytes)
-        assert (len(raw_subscription_msg) != 0)
+        assert (receive_expected_rosout_msg == True)
     else:
-        assert (raw_subscription_msg is None)
+        assert (receive_expected_rosout_msg == False)
 
     node.destroy_node()
     rclpy.shutdown(context=context)
