@@ -111,6 +111,13 @@ class TestRate:
         self._thread.join()
 
 
+def target_with_exception(target):
+    try:
+        target
+    except Exception:
+        pass
+
+
 def test_shutdown_wakes_rate():
     context = rclpy.context.Context()
     rclpy.init(context=context)
@@ -120,7 +127,7 @@ def test_shutdown_wakes_rate():
 
     rate = node.create_rate(0.0000001)
 
-    _thread = threading.Thread(target=rate.sleep, daemon=True)
+    _thread = threading.Thread(target=target_with_exception(rate.sleep), daemon=True)
     _thread.start()
     executor.shutdown()
     node.destroy_node()
